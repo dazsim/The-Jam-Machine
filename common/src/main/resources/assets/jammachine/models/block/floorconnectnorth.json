@@ -1,0 +1,24 @@
+{
+    "__comment": "Designed by Workshopcraft with Notepad",
+    "textures": {
+        "particle": "jammachine:block/cable",
+        "texture": "jammachine:block/cable"
+    },
+    "elements":    
+        [{
+                "__comment": "floorconnectnorth",
+            "from": [ 6, 0, 0.5 ],
+            "to": [ 10, 0.5, 5.5 ],
+            "faces": {
+                "down": { "uv": [ 6, 10.5, 10, 15.5 ], "texture": "#texture" },
+                "up": { "uv": [ 6, 0.5, 10, 5.5 ], "texture": "#texture" },
+                "north": { "uv": [ 6, 15.5, 10, 16 ], "texture": "#texture" },
+                "south": { "uv": [ 6, 15.5, 10, 16 ], "texture": "#texture" },
+                "west": { "uv": [ 9.5, 15.5, 4.5, 16 ], "texture": "#texture" },
+                "east": { "uv": [ 7.5, 15.5, 12.5, 16 ], "texture": "#texture" }
+            }
+        }],
+        
+                "ambientocclusion":"false"
+   
+}

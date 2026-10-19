@@ -1,0 +1,23 @@
+{
+    "__comment": "Designed by Workshopcraft with Notepad",
+    "textures": {
+        "particle": "jammachine:block/cable",
+        "texture": "jammachine:block/cable"
+    },
+    "elements":    
+        [{
+                "__comment": "northconnecteast",
+            "from": [ 10.5, 6, 0 ],
+            "to": [ 15.5, 10, 0.5 ],
+            "faces": {
+                "down": { "uv": [ 5.5, 5.5, 10.5, 10.5 ], "texture": "#texture" },
+                "up": { "uv": [ 5.5, 5.5, 10.5, 10.5 ], "texture": "#texture" },
+                "north": { "uv": [ 7.5, 15, 12.5, 16 ], "texture": "#texture" },
+                "south": { "uv": [ 7.5, 15, 12.5, 16 ], "texture": "#texture" },
+                "west": { "uv": [ 7.5, 15, 12.5, 16 ], "texture": "#texture" },
+                "east": { "uv": [ 7.5, 15, 12.5, 16 ], "texture": "#texture" }
+            }
+        }],
+                "ambientocclusion":"false"
+   
+}

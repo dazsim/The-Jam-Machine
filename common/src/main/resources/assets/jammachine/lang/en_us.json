@@ -1,0 +1,9 @@
+{
+  "itemGroup.jammachine.tab_label": "The Jam Machine",
+  "block.jammachine.sequencer": "Sequencer",
+  "item.jammachine.punchcardblank": "Blank Punch Card",
+  "item.jammachine.punchcardwritten": "Written Punch Card",
+  "block.jammachine.cable": "Jam Cable",
+  "item.jammachine.cable": "Jam Cable",
+  "item.jammachine.braidedstring": "Braided String"
+}

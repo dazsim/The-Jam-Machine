@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "SSS",
+    "SRS",
+    "SSS"
+  ],
+  "key": {
+    "S": "jammachine:braidedstring",
+    "R": "minecraft:redstone"
+  },
+  "result": {
+    "id": "jammachine:cable",
+    "count": 1
+  }
+}

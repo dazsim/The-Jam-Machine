@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "jammachine:block/sequencer",
+      "y": 270
+    },
+    "facing=south": {
+      "model": "jammachine:block/sequencer",
+      "y": 90
+    },
+    "facing=east": {
+      "model": "jammachine:block/sequencer"
+    },
+    "facing=west": {
+      "model": "jammachine:block/sequencer",
+      "y": 180
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "BRB",
+    "RCR",
+    "PIP"
+  ],
+  "key": {
+    "B": "minecraft:stone_button",
+    "R": "minecraft:redstone",
+    "C": "minecraft:comparator",
+    "P": "#minecraft:planks",
+    "I": "minecraft:repeater"
+  },
+  "result": {
+    "id": "jammachine:sequencer",
+    "count": 1
+  }
+}

@@ -1,0 +1,316 @@
+{
+  "multipart": [
+    {
+      "when": {
+        "floor": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/floorcenter",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "ceiling": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/ceilingcenter",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "north": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/northcenter",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "east": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/eastcenter",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "south": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/southcenter",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "west": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/westcenter",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "floor": "true",
+        "north": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/floorconnectnorth",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "floor": "true",
+        "south": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/floorconnectnorth",
+        "y": 180,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "floor": "true",
+        "east": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/floorconnectnorth",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "floor": "true",
+        "west": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/floorconnectnorth",
+        "y": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "north": "true",
+        "ceiling": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/northconnectceiling",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "west": "true",
+        "ceiling": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/northconnectceiling",
+        "y": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "south": "true",
+        "ceiling": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/northconnectceiling",
+        "y": 180,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "east": "true",
+        "ceiling": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/northconnectceiling",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "north": "true",
+        "floor": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/northconnectfloor",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "west": "true",
+        "floor": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/northconnectfloor",
+        "y": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "south": "true",
+        "floor": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/northconnectfloor",
+        "y": 180,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "east": "true",
+        "floor": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/northconnectfloor",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "north": "true",
+        "east": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/northconnecteast",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "east": "true",
+        "south": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/northconnecteast",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "south": "true",
+        "west": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/northconnecteast",
+        "y": 180,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "west": "true",
+        "north": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/northconnecteast",
+        "y": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "north": "true",
+        "west": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/northconnectwest",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "east": "true",
+        "north": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/northconnectwest",
+        "y": 90,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "south": "true",
+        "east": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/northconnectwest",
+        "y": 180,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "west": "true",
+        "south": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/northconnectwest",
+        "y": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "north": "true",
+        "ceiling": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/ceilingconnectnorth",
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "west": "true",
+        "ceiling": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/ceilingconnectnorth",
+        "y": 270,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "south": "true",
+        "ceiling": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/ceilingconnectnorth",
+        "y": 180,
+        "uvlock": true
+      }
+    },
+    {
+      "when": {
+        "east": "true",
+        "ceiling": "true"
+      },
+      "apply": {
+        "model": "jammachine:block/ceilingconnectnorth",
+        "y": 90,
+        "uvlock": true
+      }
+    }
+  ]
+}

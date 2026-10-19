@@ -1,0 +1,35 @@
+{
+    "schemaVersion": 1,
+    "id": "${mod_id}",
+    "version": "${version}",
+    "name": "${mod_name}",
+    "description": "${description}",
+    "authors": [
+        "AtomicBlom",
+        "Workshopcraft"
+    ],
+    "contributors": [
+        "${credits}"
+    ],
+    "contact": {
+        "sources": "https://github.com/dazsim/the-jam-machine"
+    },
+    "license": "${license}",
+    "icon": "logo.png",
+    "environment": "*",
+    "accessWidener": "jammachine.accesswidener",
+    "entrypoints": {
+        "client": [
+            "org.atomicworkshop.jammachine.fabric.JamMachineFabricClient"
+        ],
+        "main": [
+            "org.atomicworkshop.jammachine.fabric.JamMachineFabric"
+        ]
+    },
+    "depends": {
+        "fabricloader": ">=${fabric_loader_version}",
+        "fabric-api": "*",
+        "minecraft": "${fabric_minecraft_range}",
+        "java": ">=${java_version}"
+    }
+}

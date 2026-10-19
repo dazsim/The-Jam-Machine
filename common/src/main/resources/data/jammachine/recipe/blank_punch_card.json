@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "PPP",
+    "P P",
+    "RRR"
+  ],
+  "key": {
+    "P": "minecraft:paper",
+    "R": "minecraft:redstone"
+  },
+  "result": {
+    "id": "jammachine:punchcardblank",
+    "count": 1
+  }
+}
