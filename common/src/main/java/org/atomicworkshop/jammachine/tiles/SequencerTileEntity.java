@@ -21,6 +21,7 @@ import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
@@ -29,12 +30,19 @@ import org.atomicworkshop.jammachine.ClientConfig;
 import org.atomicworkshop.jammachine.JamMachineMod;
 import org.atomicworkshop.jammachine.Reference;
 import org.atomicworkshop.jammachine.Reference.NBT;
+import org.atomicworkshop.jammachine.cables.CableNetwork;
 import org.atomicworkshop.jammachine.gui.SequencerContainer;
 import org.atomicworkshop.jammachine.libraries.ItemLibrary;
 import org.atomicworkshop.jammachine.libraries.TileEntityTypeLibrary;
 import org.atomicworkshop.jammachine.sequencing.*;
 import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.List;
 import java.util.UUID;
 
 public class SequencerTileEntity extends BlockEntity implements Nameable, MenuProvider {
@@ -60,10 +68,14 @@ public class SequencerTileEntity extends BlockEntity implements Nameable, MenuPr
 
     public Sequencer sequencer;
     private boolean isPlaying;
+    private boolean isPowered;
+    //set while a controller is running this sequencer
+    private UUID controllerSongId;
+    private boolean controllerPlaying;
 
-    private boolean hasController()
+    public boolean hasController()
     {
-        return false;
+        return controllerSongId != null;
     }
     public boolean getHasCard()
     {
@@ -81,7 +93,7 @@ public class SequencerTileEntity extends BlockEntity implements Nameable, MenuPr
     {
         super.setRemoved();
         sequencer.setCurrentInterval(-1);
-        MusicPlayer.stopPlaying(sequencerSetId);
+        MusicPlayer.stopPlaying(sequencer, activeSongId());
         if (level != null) {
             MusicPlayer.stopTrackingSequencerAt(level, worldPosition);
         }
@@ -100,7 +112,11 @@ public class SequencerTileEntity extends BlockEntity implements Nameable, MenuPr
         super.loadAdditional(compound);
 
         final boolean wasPlaying = isPlaying;
+        final UUID oldSongId = activeSongId();
         isPlaying = compound.getBooleanOr(NBT.isPlaying, false);
+        isPowered = compound.getBooleanOr("isPowered", isPlaying);
+        controllerSongId = compound.read("controllerSong", UUIDUtil.CODEC).orElse(null);
+        controllerPlaying = controllerSongId != null && compound.getBooleanOr("controllerPlaying", false);
         hasCard = compound.getBooleanOr(NBT.hasCard, false);
         sequencerSetId = compound.read(NBT.songId, UUIDUtil.CODEC).orElse(Reference.EMPTY_UUID);
 
@@ -111,7 +127,18 @@ public class SequencerTileEntity extends BlockEntity implements Nameable, MenuPr
         compound.read(NBT.sequence, CompoundTag.CODEC).ifPresent(this::readSequence);
         this.customName = compound.getStringOr(NBT.name, null);
 
-        updatePlayStatus(wasPlaying);
+        if (wasPlaying && isPlaying && !oldSongId.equals(activeSongId())) {
+            //moved to or from a controller while playing
+            MusicPlayer.stopPlaying(sequencer, oldSongId);
+            startPlaying();
+        } else {
+            updatePlayStatus(wasPlaying);
+        }
+    }
+
+    private UUID activeSongId()
+    {
+        return controllerSongId != null ? controllerSongId : sequencerSetId;
     }
 
     private void readCustomDataFromNBT(CompoundTag compound)
@@ -138,6 +165,11 @@ public class SequencerTileEntity extends BlockEntity implements Nameable, MenuPr
         super.saveAdditional(compound);
 
         compound.putBoolean(NBT.isPlaying, isPlaying);
+        compound.putBoolean("isPowered", isPowered);
+        if (controllerSongId != null) {
+            compound.store("controllerSong", UUIDUtil.CODEC, controllerSongId);
+            compound.putBoolean("controllerPlaying", controllerPlaying);
+        }
         compound.putBoolean(NBT.hasCard, hasCard);
         compound.store(NBT.songId, UUIDUtil.CODEC, sequencerSetId);
 
@@ -187,8 +219,7 @@ public class SequencerTileEntity extends BlockEntity implements Nameable, MenuPr
         if (!hasController()) {
             sequencerSet = new SequencerSet(sequencerSetId);
         } else {
-            //TODO: Resolve SequencerSet from sequencer
-            sequencerSet = new SequencerSet(sequencerSetId);
+            sequencerSet = new SequencerSet(controllerSongId);
         }
 
         sequencerSet.addSequencer(sequencer);
@@ -215,7 +246,7 @@ public class SequencerTileEntity extends BlockEntity implements Nameable, MenuPr
     {
         sequencer.setCurrentInterval(-1);
 
-        MusicPlayer.stopPlaying(sequencerSetId);
+        MusicPlayer.stopPlaying(sequencer, activeSongId());
         if (level != null && !level.isClientSide()) {
             level.blockEvent(worldPosition, this.getBlockState().getBlock(), IS_PLAYING, 0);
         }
@@ -223,12 +254,58 @@ public class SequencerTileEntity extends BlockEntity implements Nameable, MenuPr
 
     public void notifyPowered(boolean powered)
     {
-        if (isPlaying != powered) {
-            isPlaying = powered;
+        isPowered = powered;
+        refreshPlaying();
+    }
+
+    private void refreshPlaying()
+    {
+        final boolean shouldPlay = isPowered || controllerPlaying;
+        if (isPlaying != shouldPlay) {
+            isPlaying = shouldPlay;
             level.blockEvent(worldPosition, this.getBlockState().getBlock(), IS_PLAYING, isPlaying ? 1 : 0);
             setChanged();
         }
     }
+
+    //called by a controller, songId null hands the sequencer back
+    public void setControlled(@Nullable UUID songId, boolean playing)
+    {
+        if (java.util.Objects.equals(songId, controllerSongId) && controllerPlaying == (playing && songId != null)) return;
+        controllerSongId = songId;
+        controllerPlaying = playing && songId != null;
+        sendUpdates();
+        refreshPlaying();
+    }
+
+    public boolean isControlledBy(UUID songId)
+    {
+        return songId.equals(controllerSongId);
+    }
+
+    public void setBeatsPerMinute(int beatsPerMinute)
+    {
+        beatsPerMinute = Math.max(MIN_BPM, Math.min(MAX_BPM, beatsPerMinute));
+        if (beatsPerMinute == sequencer.getBeatsPerMinute()) return;
+        level.blockEvent(worldPosition, getBlockState().getBlock(), CHANGE_BPM, beatsPerMinute);
+        setChanged();
+    }
+
+    public void selectPattern(int patternIndex)
+    {
+        if (patternIndex < 0 || patternIndex >= 8) return;
+        level.blockEvent(worldPosition, getBlockState().getBlock(), CHANGE_PATTERN, patternIndex);
+        setChanged();
+    }
+
+    public void toggleProgramming()
+    {
+        level.blockEvent(worldPosition, getBlockState().getBlock(), RUN_PROGRAM, sequencer.isProgramming() ? 0 : 1);
+        setChanged();
+    }
+
+    public static final int MIN_BPM = 60;
+    public static final int MAX_BPM = 300;
 
     @Override
     public boolean triggerEvent(int id, int type)
@@ -255,33 +332,132 @@ public class SequencerTileEntity extends BlockEntity implements Nameable, MenuPr
         }
         if (controlCode == CHANGE_BPM) {
             sequencer.setDesiredBPM(type);
+            MusicPlayer.refreshBpm(activeSongId());
             return true;
         }
         if (controlCode == ENABLE_NOTE) {
-            sequencer.getCurrentPattern().setPitchAtInterval(id >> 4, type);
+            //block events only carry bytes, the pattern rides above the pitch
+            sequencer.getPattern(type >> 5).setPitchAtInterval((id >> 4) & 15, type & 31);
             if (!ClientConfig.USE_GUI && level.isClientSide()) {
                 ImmutableList<AdjacentNoteBlock> availableNoteBlocks = sequencer.getAvailableNoteBlocks();
                 if (!availableNoteBlocks.isEmpty()) {
                     AdjacentNoteBlock noteBlock = availableNoteBlocks.get(0);
-                    MusicPlayer.playNote(sequencer, noteBlock, (byte) type);
+                    MusicPlayer.playNote(sequencer, noteBlock, (byte) (type & 31));
                 }
             }
             return true;
         }
         if (controlCode == DISABLE_NOTE) {
-            sequencer.getCurrentPattern().resetPitchAtInterval(id >> 4, type);
+            sequencer.getPattern(type >> 5).resetPitchAtInterval((id >> 4) & 15, type & 31);
             return true;
         }
 
         return false;
     }
 
+    public void setTrackColour(int colour)
+    {
+        if (colour < 0 || colour > Sequencer.PLAIN_CABLE || colour == sequencer.getTrackColour()) return;
+        sequencer.setTrackColour(colour);
+        sendUpdates();
+    }
+
+    //a note painted with the track colour goes back to following the track
+    public void paintNote(int patternIndex, int interval, int pitch, int colour)
+    {
+        if (patternIndex < 0 || patternIndex >= 8 || interval < 0 || interval >= 16 || pitch < 0 || pitch >= 25) return;
+        if (colour < Pattern.TRACK_COLOUR || colour > Sequencer.PLAIN_CABLE) return;
+        if (colour == sequencer.getTrackColour()) colour = Pattern.TRACK_COLOUR;
+        final Pattern pattern = sequencer.getPattern(patternIndex);
+        if (!pattern.isPitchActiveAtInterval(interval, pitch)) {
+            if (colour == Pattern.TRACK_COLOUR) return;
+            notifyPitchAtIntervalChanged(patternIndex, pitch, interval, true);
+        }
+        pattern.setColour(interval, pitch, colour);
+        sendUpdates();
+    }
+
+    private boolean isStepping;
+    private float stepProgress;
+    private int pulseTicks;
+    private final Set<Integer> pulsedColours = new HashSet<>();
+
+    //the client plays the notes, the server keeps its own count of steps to send pulses down the cables
+    private void stepServer()
+    {
+        if (pulseTicks > 0 && --pulseTicks == 0) releasePulses();
+        if (!isPlaying) {
+            if (isStepping) {
+                isStepping = false;
+                releasePulses();
+            }
+            return;
+        }
+        if (!isStepping) {
+            isStepping = true;
+            stepProgress = 0;
+            sequencer.reset();
+        }
+        //four steps to a beat, twenty ticks to a second
+        stepProgress += sequencer.getBeatsPerMinute() / 300f;
+        if (stepProgress < 1) return;
+        stepProgress = Math.min(stepProgress - 1, 1);
+
+        sequencer.incrementInterval();
+        final int interval = sequencer.getCurrentInterval();
+        final Pattern pattern = sequencer.getCurrentPattern();
+        final Set<Integer> colours = new HashSet<>();
+        for (final Byte pitch : pattern.getPitchesAtInterval(interval)) {
+            colours.add(sequencer.colourOf(pattern, interval, pitch));
+        }
+        //always drop first, so a colour on two steps in a row still gets a rising edge
+        releasePulses();
+        if (colours.isEmpty()) return;
+        for (final int colour : colours) {
+            CableNetwork.pulse(level, worldPosition, colour, true);
+        }
+        pulsedColours.addAll(colours);
+        pulseTicks = Math.max(1, (int) (150f / Math.max(1, sequencer.getBeatsPerMinute())));
+    }
+
+    private void releasePulses()
+    {
+        for (final int colour : pulsedColours) {
+            CableNetwork.pulse(level, worldPosition, colour, false);
+        }
+        pulsedColours.clear();
+        pulseTicks = 0;
+    }
+
     public static void tick(Level world, BlockPos pos, BlockState state, SequencerTileEntity tileEntity)
     {
+        if (!world.isClientSide()) tileEntity.stepServer();
+
         final int blockToCheck = (int)(world.getGameTime() & 3);
         final Direction facing = Direction.from2DDataValue(blockToCheck);
 
         tileEntity.sequencer.verifyNoteBlockFacing(facing);
+
+        //look for note blocks on the end of cables, by the channel that reaches them
+        if ((world.getGameTime() + pos.hashCode()) % 20 == 0) {
+            final Map<Integer, List<BlockPos>> noteBlocks = new HashMap<>();
+            for (final int channel : tileEntity.sequencer.usedChannels()) {
+                final List<BlockPos> found = new ArrayList<>();
+                for (final BlockPos device : CableNetwork.devicesFrom(world, pos, channel)) {
+                    if (world.getBlockState(device).getBlock() == Blocks.NOTE_BLOCK && !isNextTo(pos, device)) {
+                        found.add(device);
+                    }
+                }
+                if (!found.isEmpty()) noteBlocks.put(channel, found);
+            }
+            tileEntity.sequencer.setNetworkNoteBlocks(noteBlocks);
+        }
+    }
+
+    //adjacent note blocks are already played directly
+    private static boolean isNextTo(BlockPos pos, BlockPos other)
+    {
+        return pos.distManhattan(other) == 1 && pos.getY() == other.getY();
     }
 
     public void loadFromCard(ItemStack heldItemStack)
@@ -343,24 +519,24 @@ public class SequencerTileEntity extends BlockEntity implements Nameable, MenuPr
             final int interval = (int)x;
 
             final Pattern currentPattern = sequencer.getCurrentPattern();
-            notifyPitchAtIntervalChanged(pitch, interval, !currentPattern.isPitchActiveAtInterval(pitch, interval));
+            notifyPitchAtIntervalChanged(sequencer.getCurrentPatternIndex(), pitch, interval, !currentPattern.isPitchActiveAtInterval(pitch, interval));
             return true;
         }
         return false;
     }
 
-    public void notifyPitchAtIntervalChanged(int pitch, int interval, boolean isEnabled) {
+    public void notifyPitchAtIntervalChanged(int patternIndex, int pitch, int interval, boolean isEnabled) {
         //Hit a sequence button
-        final Pattern currentPattern = sequencer.getCurrentPattern();
-        currentPattern.setPitchAtInterval(interval, pitch, isEnabled);
+        final Pattern pattern = sequencer.getPattern(patternIndex);
+        pattern.setPitchAtInterval(interval, pitch, isEnabled);
 
         JamMachineMod.LOGGER.info("Sett pitch {} at interval {} - {}", pitch, interval, isEnabled);
         if (!level.isClientSide())
         {
             if (isEnabled) {
-                level.blockEvent(worldPosition, getBlockState().getBlock(), ENABLE_NOTE | (interval << 4), pitch);
+                level.blockEvent(worldPosition, getBlockState().getBlock(), ENABLE_NOTE | (interval << 4), pitch | ((patternIndex & 7) << 5));
             } else {
-                level.blockEvent(worldPosition, getBlockState().getBlock(), DISABLE_NOTE | (interval << 4), pitch);
+                level.blockEvent(worldPosition, getBlockState().getBlock(), DISABLE_NOTE | (interval << 4), pitch | ((patternIndex & 7) << 5));
             }
             setChanged();
         }
@@ -500,7 +676,9 @@ public class SequencerTileEntity extends BlockEntity implements Nameable, MenuPr
     @Override
     public void preRemoveSideEffects(BlockPos pos, BlockState state)
     {
-        if (hasCard && level != null && !level.isClientSide()) {
+        if (level == null || level.isClientSide()) return;
+        releasePulses();
+        if (hasCard) {
             ejectCard(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
         }
     }

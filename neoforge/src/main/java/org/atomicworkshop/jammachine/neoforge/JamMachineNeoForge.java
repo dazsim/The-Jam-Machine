@@ -1,8 +1,10 @@
 package org.atomicworkshop.jammachine.neoforge;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.MenuProvider;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
@@ -13,11 +15,12 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 import org.atomicworkshop.jammachine.JamMachineMod;
 import org.atomicworkshop.jammachine.Reference;
 import org.atomicworkshop.jammachine.events.RegistrationEvents;
+import org.atomicworkshop.jammachine.gui.ControllerContainer;
 import org.atomicworkshop.jammachine.gui.SequencerContainer;
+import org.atomicworkshop.jammachine.network.MachineControl;
 import org.atomicworkshop.jammachine.libraries.ContainerTypeLibrary;
 import org.atomicworkshop.jammachine.network.SequencerSetPitchAtInterval;
 import org.atomicworkshop.jammachine.sequencing.MusicPlayer;
-import org.atomicworkshop.jammachine.tiles.SequencerTileEntity;
 
 @Mod(Reference.MOD_ID)
 public class JamMachineNeoForge {
@@ -28,8 +31,8 @@ public class JamMachineNeoForge {
 
         JamMachineMod.PLATFORM = new JamMachineMod.Platform() {
             @Override
-            public void openSequencer(ServerPlayer player, SequencerTileEntity tileEntity) {
-                player.openMenu(tileEntity, tileEntity.getBlockPos());
+            public void openMenu(ServerPlayer player, MenuProvider provider, BlockPos pos) {
+                player.openMenu(provider, pos);
             }
 
             @Override
@@ -48,11 +51,16 @@ public class JamMachineNeoForge {
             ContainerTypeLibrary.sequencer_container = IMenuTypeExtension.create(
                     (id, inventory, buf) -> new SequencerContainer(id, inventory, buf.readBlockPos()));
             h.register(Reference.Container.SEQUENCER, ContainerTypeLibrary.sequencer_container);
+            ContainerTypeLibrary.controller_container = IMenuTypeExtension.create(
+                    (id, inventory, buf) -> new ControllerContainer(id, inventory, buf.readBlockPos()));
+            h.register(Reference.Container.CONTROLLER, ContainerTypeLibrary.controller_container);
         });
     }
 
     private static void onRegisterPayloads(RegisterPayloadHandlersEvent e) {
         e.registrar("1").playToServer(SequencerSetPitchAtInterval.TYPE, SequencerSetPitchAtInterval.STREAM_CODEC,
+                (payload, context) -> payload.handle((ServerPlayer) context.player()))
+                .playToServer(MachineControl.TYPE, MachineControl.STREAM_CODEC,
                 (payload, context) -> payload.handle((ServerPlayer) context.player()));
     }
 }

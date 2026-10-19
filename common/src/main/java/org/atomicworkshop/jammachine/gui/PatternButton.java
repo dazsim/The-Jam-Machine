@@ -10,6 +10,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.world.item.DyeColor;
+import org.atomicworkshop.jammachine.sequencing.Pattern;
 import org.atomicworkshop.jammachine.sequencing.Sequencer;
 
 public class PatternButton extends AbstractButton {
@@ -20,7 +21,6 @@ public class PatternButton extends AbstractButton {
     private final Sequencer sequencer;
     protected final IPressable onPress;
     private int colour;
-    private boolean isChecked;
 
     public PatternButton(int x, int y, int width, int height, int interval, int pitch, Sequencer sequencer, IPressable onPressed) {
         super(x, y, width, height, Component.empty());
@@ -28,15 +28,12 @@ public class PatternButton extends AbstractButton {
         this.pitch = pitch;
         this.sequencer = sequencer;
         this.onPress = onPressed;
-
-        this.isChecked = sequencer.isPlaying() && sequencer.getCurrentPattern().isPitchActiveAtInterval(interval, pitch);
         updateColour();
     }
 
     @Override
     public void onPress(InputWithModifiers input) {
-        this.isChecked = !this.isChecked;
-        this.onPress.onPress(pitch, interval, isChecked);
+        this.onPress.onPress(pitch, interval, !isChecked(), input.hasControlDown());
         updateColour();
     }
 
@@ -47,11 +44,19 @@ public class PatternButton extends AbstractButton {
 
     @Override
     protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+        updateColour();
         int r = Math.min(255, ((colour & 0xff0000) >> 16) * 2);
         int g = Math.min(255, ((colour & 0x00ff00) >> 8) * 2);
         int b = Math.min(255, (colour & 0x0000ff) * 2);
         graphics.blitSprite(RenderPipelines.GUI_TEXTURED, this.isHoveredOrFocused() ? BUTTON_HIGHLIGHTED : BUTTON,
                 this.getX(), this.getY(), this.getWidth(), this.getHeight(), ARGB.color(ARGB.as8BitChannel(this.alpha), r, g, b));
+        //a note with its own cable colour, lit up while it plays
+        final int override = isChecked() ? sequencer.getCurrentPattern().getColour(interval, pitch) : Pattern.TRACK_COLOUR;
+        if (override != Pattern.TRACK_COLOUR) {
+            final boolean playing = sequencer.isPlaying() && sequencer.getCurrentInterval() == interval;
+            final int fill = playing ? ARGB.srgbLerp(0.5f, ColourSwatch.rgb(override), 0xFFFFFF) : ColourSwatch.rgb(override);
+            graphics.fill(getX() + 2, getY() + 2, getX() + getWidth() - 2, getY() + getHeight() - 2, 0xFF000000 | fill);
+        }
     }
 
     @Override
@@ -95,17 +100,14 @@ public class PatternButton extends AbstractButton {
                 pitch == 14 || pitch == 16 || pitch == 19 || pitch == 21 || pitch == 24;
     }
 
+    //read from the pattern every time, it can change under us when the pattern is switched
     public boolean isChecked() {
-        return isChecked;
-    }
-
-    public void setChecked(boolean checked) {
-        isChecked = checked;
-        updateColour();
+        return sequencer.getCurrentPattern().isPitchActiveAtInterval(interval, pitch);
     }
 
     private void updateColour() {
-        this.colour = getSequenceButtonColour(sequencer.getCurrentInterval(), interval, pitch, isChecked);
+        final int currentInterval = sequencer.isPlaying() ? sequencer.getCurrentInterval() : -1;
+        this.colour = getSequenceButtonColour(currentInterval, interval, pitch, isChecked());
     }
 
     public void updateInterval() {
@@ -113,6 +115,6 @@ public class PatternButton extends AbstractButton {
     }
 
     public interface IPressable {
-        void onPress(int pitch, int interval, boolean isChecked);
+        void onPress(int pitch, int interval, boolean isChecked, boolean isPicking);
     }
 }

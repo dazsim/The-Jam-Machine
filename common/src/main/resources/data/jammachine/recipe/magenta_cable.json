@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "CCC",
+    "CDC",
+    "CCC"
+  ],
+  "key": {
+    "C": "#jammachine:cables",
+    "D": "minecraft:magenta_dye"
+  },
+  "result": {
+    "id": "jammachine:magenta_cable",
+    "count": 8
+  }
+}

@@ -19,6 +19,11 @@ import org.atomicworkshop.jammachine.JamMachineMod;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -43,6 +48,13 @@ public class Sequencer
     private boolean isProgramming;
     private LinkedList<Integer> programList = new LinkedList<>();
     private int programIndex;
+    private List<AdjacentNoteBlock> networkNoteBlocks = new ArrayList<>();
+    //note blocks reached over cables, by the channel that reaches them
+    private Map<Integer, List<AdjacentNoteBlock>> channelNoteBlocks = Map.of();
+    private ImmutableList<AdjacentNoteBlock> touchingNoteBlocks = ImmutableList.of();
+    public static final int PLAIN_CABLE = 16;
+    //the cable colour its steps go out on
+    private int trackColour = PLAIN_CABLE;
 
     public Sequencer(Level world, BlockPos blockPos)
     {
@@ -70,6 +82,11 @@ public class Sequencer
     private void setAdjacentNoteBlock(Direction direction, NoteBlockInstrument sound)
     {
         adjacentNoteBlocks[direction.get2DDataValue()].setInstrument(sound);
+        rebuildAvailableNoteBlocks();
+    }
+
+    private void rebuildAvailableNoteBlocks()
+    {
         final List<AdjacentNoteBlock> availableNoteBlocks = Lists.newArrayList();
         for (final AdjacentNoteBlock adjacentNoteBlock : adjacentNoteBlocks)
         {
@@ -78,6 +95,8 @@ public class Sequencer
                 availableNoteBlocks.add(adjacentNoteBlock);
             }
         }
+        touchingNoteBlocks = ImmutableList.copyOf(availableNoteBlocks);
+        availableNoteBlocks.addAll(networkNoteBlocks);
         currentAdjacentNoteBlocks = ImmutableList.copyOf(availableNoteBlocks);
     }
 
@@ -149,7 +168,7 @@ public class Sequencer
             if (programIndex >= programList.size()) {
                 programIndex = 0;
             }
-            currentPatternIndex = programList.get(0);
+            currentPatternIndex = programList.get(programIndex);
 
             int nextProgramIndex = programIndex + 1;
             if (nextProgramIndex >= programList.size()) {
@@ -165,6 +184,11 @@ public class Sequencer
     public Pattern getCurrentPattern()
     {
         return patterns[currentPatternIndex];
+    }
+
+    public Pattern getPattern(int patternIndex)
+    {
+        return patterns[patternIndex & 7];
     }
 
     public ImmutableList<AdjacentNoteBlock> getAvailableNoteBlocks()
@@ -188,6 +212,7 @@ public class Sequencer
         currentPatternIndex = compound.getIntOr(NBT.currentPatternIndex, 0);
         pendingPatternIndex = compound.getIntOr(NBT.pendingPatternIndex, 0);
         name = compound.getStringOr(NBT.name, "");
+        trackColour = compound.getByteOr(NBT.trackColour, (byte) PLAIN_CABLE);
 
         final ListTag nbtPatterns = compound.getListOrEmpty(NBT.pattern);
 
@@ -211,6 +236,7 @@ public class Sequencer
                     pattern.setPitchAtInterval(interval, pitch);
                 }
             }
+            pattern.readColours(patternNBT.getByteArray(NBT.colours).orElse(new byte[0]));
         }
 
         programList.clear();
@@ -227,6 +253,7 @@ public class Sequencer
         tagCompound.putInt(NBT.beatsPerMinute, beatsPerMinute);
         tagCompound.putInt(NBT.currentPatternIndex, currentPatternIndex);
         tagCompound.putInt(NBT.pendingPatternIndex, pendingPatternIndex);
+        tagCompound.putByte(NBT.trackColour, (byte) trackColour);
         if (name != null) {
             tagCompound.putString(NBT.name, name);
         }
@@ -246,6 +273,11 @@ public class Sequencer
                     final ByteArrayTag pitchArray = new ByteArrayTag(Bytes.toArray(pitchList));
                     patternNBT.put(String.valueOf(interval), pitchArray);
                 }
+            }
+
+            final byte[] colours = pattern.writeColours();
+            if (colours.length > 0) {
+                patternNBT.putByteArray(NBT.colours, colours);
             }
 
             patternList.add(patternNBT);
@@ -280,8 +312,8 @@ public class Sequencer
     public int incrementNoteBlockNumber()
     {
         ++noteBlockSearch;
-        while (noteBlockSearch >= currentAdjacentNoteBlocks.size()) {
-            noteBlockSearch -= currentAdjacentNoteBlocks.size();
+        while (noteBlockSearch >= touchingNoteBlocks.size()) {
+            noteBlockSearch -= touchingNoteBlocks.size();
         }
         return noteBlockSearch;
     }
@@ -336,6 +368,20 @@ public class Sequencer
         return false;
     }
 
+    public int getTrackColour() {
+        return trackColour;
+    }
+
+    public void setTrackColour(int colour) {
+        trackColour = colour;
+    }
+
+    //the colour a note's step pulse goes out on
+    public int colourOf(Pattern pattern, int interval, int pitch) {
+        final int colour = pattern.getColour(interval, pitch);
+        return colour == Pattern.TRACK_COLOUR ? trackColour : colour;
+    }
+
     public String getName() {
         return name;
     }
@@ -349,6 +395,9 @@ public class Sequencer
         this.isProgramming = isProgramming;
         programList.clear();
         programList.add(currentPatternIndex < 0 ? 0 : currentPatternIndex);
+        if (!isProgramming && currentPatternIndex >= 0) {
+            pendingPatternIndex = currentPatternIndex;
+        }
     }
 
     public boolean isProgramming()
@@ -374,9 +423,71 @@ public class Sequencer
                 pendingPatternIndex = currentPatternIndex;
             }
         } else {
-            currentPatternIndex = 0;
-            pendingPatternIndex = 0;
+            //start on whichever pattern was picked
+            if (currentPatternIndex < 0) currentPatternIndex = 0;
+            pendingPatternIndex = currentPatternIndex;
         }
+    }
+
+    boolean isIn(SequencerSet set)
+    {
+        for (final Sequencer sequencer : set) {
+            if (sequencer == this) return true;
+        }
+        return false;
+    }
+
+    //start part way through, in step with another sequencer
+    void syncTo(Sequencer leader)
+    {
+        isAtStart = leader.isAtStart;
+        currentInterval = leader.currentInterval;
+    }
+
+    //note blocks reached over cables, refreshed by the tile entity
+    public void setNetworkNoteBlocks(Map<Integer, List<BlockPos>> byChannel)
+    {
+        final Map<BlockPos, AdjacentNoteBlock> found = new LinkedHashMap<>();
+        final Map<Integer, List<AdjacentNoteBlock>> channels = new HashMap<>();
+        for (final Map.Entry<Integer, List<BlockPos>> entry : byChannel.entrySet()) {
+            final List<AdjacentNoteBlock> list = new ArrayList<>();
+            for (final BlockPos pos : entry.getValue()) {
+                final BlockState state = world.getBlockState(pos);
+                if (state.getBlock() != Blocks.NOTE_BLOCK) continue;
+                list.add(found.computeIfAbsent(pos, p -> new AdjacentNoteBlock(p, state.getValue(NoteBlock.INSTRUMENT))));
+            }
+            channels.put(entry.getKey(), list);
+        }
+        channelNoteBlocks = channels;
+        networkNoteBlocks = new ArrayList<>(found.values());
+        rebuildAvailableNoteBlocks();
+    }
+
+    //the ones right next to the sequencer, which take turns
+    public ImmutableList<AdjacentNoteBlock> getTouchingNoteBlocks()
+    {
+        return touchingNoteBlocks;
+    }
+
+    //the ones on the end of cables, which play every note on their channel
+    public List<AdjacentNoteBlock> getNoteBlocksOn(int channel)
+    {
+        return channelNoteBlocks.getOrDefault(channel, List.of());
+    }
+
+    //every channel a note in any pattern goes out on
+    public Set<Integer> usedChannels()
+    {
+        final Set<Integer> out = new HashSet<>();
+        out.add(trackColour);
+        for (final Pattern pattern : patterns) {
+            for (int interval = 0; interval < 16; interval++) {
+                for (final Byte pitch : pattern.getPitchesAtInterval(interval)) {
+                    out.add(colourOf(pattern, interval, pitch));
+                }
+            }
+        }
+        return out;
     }
 
     public int getProgramLength() {

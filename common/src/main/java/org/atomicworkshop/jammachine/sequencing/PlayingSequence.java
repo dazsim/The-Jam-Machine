@@ -45,18 +45,38 @@ class PlayingSequence
 
     private void playSequencer(Sequencer sequencer)
     {
-        final ImmutableList<AdjacentNoteBlock> availableNoteBlocks = sequencer.getAvailableNoteBlocks();
-        if (availableNoteBlocks.isEmpty()) return;
+        if (sequencer.getAvailableNoteBlocks().isEmpty()) return;
+        final ImmutableList<AdjacentNoteBlock> touching = sequencer.getTouchingNoteBlocks();
 
         final Pattern currentPattern = sequencer.getCurrentPattern();
-        for (final Byte pitchToPlay : currentPattern.getPitchesAtInterval(sequencer.getCurrentInterval()))
+        final int interval = sequencer.getCurrentInterval();
+        for (final Byte pitchToPlay : currentPattern.getPitchesAtInterval(interval))
         {
-            final int noteBlockSearch = sequencer.incrementNoteBlockNumber();
-
-            final AdjacentNoteBlock noteBlock = availableNoteBlocks.get(noteBlockSearch);
-
-            MusicPlayer.playNote(sequencer, noteBlock, pitchToPlay);
+            if (!touching.isEmpty()) {
+                MusicPlayer.playNote(sequencer, touching.get(sequencer.incrementNoteBlockNumber()), pitchToPlay);
+            }
+            for (final AdjacentNoteBlock noteBlock : sequencer.getNoteBlocksOn(sequencer.colourOf(currentPattern, interval, pitchToPlay))) {
+                MusicPlayer.playNote(sequencer, noteBlock, pitchToPlay);
+            }
         }
+    }
+
+    void join(SequencerSet other)
+    {
+        Sequencer leader = null;
+        for (final Sequencer sequencer : sequencerSet) {
+            leader = sequencer;
+            break;
+        }
+        for (final Sequencer sequencer : other) {
+            if (sequencer.isIn(sequencerSet)) continue;
+            sequencer.reset();
+            if (leader != null) {
+                sequencer.syncTo(leader);
+            }
+            sequencerSet.addSequencer(sequencer);
+        }
+        sequencerSet.updateBpm();
     }
 
     SequencerSet getSequencerSet()

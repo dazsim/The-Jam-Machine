@@ -8,10 +8,12 @@ import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import org.atomicworkshop.jammachine.gui.ControllerScreen;
 import org.atomicworkshop.jammachine.gui.SequencerScreen;
 import org.atomicworkshop.jammachine.libraries.ContainerTypeLibrary;
 import org.atomicworkshop.jammachine.libraries.TileEntityTypeLibrary;
 import org.atomicworkshop.jammachine.sequencing.MusicPlayer;
+import org.atomicworkshop.jammachine.ter.CableRenderer;
 import org.atomicworkshop.jammachine.ter.SequencerTER;
 
 public class JamMachineFabricClient implements ClientModInitializer {
@@ -21,6 +23,8 @@ public class JamMachineFabricClient implements ClientModInitializer {
     public void onInitializeClient() {
         MenuScreens.register(ContainerTypeLibrary.sequencer_container, SequencerScreen::new);
         BlockEntityRenderers.register(TileEntityTypeLibrary.sequencer_tile, SequencerTER::new);
+        MenuScreens.register(ContainerTypeLibrary.controller_container, ControllerScreen::new);
+        BlockEntityRenderers.register(TileEntityTypeLibrary.cable_tile, CableRenderer::new);
 
         LevelRenderEvents.END_EXTRACTION.register(context -> MusicPlayer.onClientTick());
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register((minecraft, level) -> {

@@ -1,16 +1,12 @@
 {
-  "type": "minecraft:crafting_shapeless",
-  "ingredients": [
-    "minecraft:string",
-    "minecraft:string",
-    "minecraft:string",
-    "minecraft:string",
-    "minecraft:string",
-    "minecraft:string",
-    "minecraft:string",
-    "minecraft:string",
-    "minecraft:string"
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "SSS",
+    "SSS"
   ],
+  "key": {
+    "S": "minecraft:string"
+  },
   "result": {
     "id": "jammachine:braidedstring",
     "count": 1

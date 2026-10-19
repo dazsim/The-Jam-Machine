@@ -2,6 +2,7 @@ package org.atomicworkshop.jammachine;
 
 import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.DyeColor;
 
 import java.util.UUID;
 
@@ -19,18 +20,22 @@ public final class Reference {
 
         public static final Identifier SEQUENCER = resource("sequencer");
         public static final Identifier CABLE = resource("cable");
+        public static final Identifier CONTROLLER = resource("controller");
 
         private Blocks() {}
     }
 
     public static class TileEntities {
         public static final Identifier SEQUENCER = resource("sequencer_tile");
+        public static final Identifier CABLE = resource("cable_tile");
+        public static final Identifier CONTROLLER = resource("controller_tile");
 
         private TileEntities() {}
     }
 
     public static class Container {
         public static final Identifier SEQUENCER = resource("sequencer_container");
+        public static final Identifier CONTROLLER = resource("controller_container");
 
         private Container() {}
     }
@@ -41,6 +46,10 @@ public final class Reference {
         public static final Identifier PUNCH_CARD_BLANK = resource("punchcardblank");
         public static final Identifier BRAIDED_STRING = resource("braidedstring");
         public static final Identifier CABLE = resource("cable");
+
+        public static Identifier dyedCable(DyeColor colour) {
+            return resource(colour.getName() + "_cable");
+        }
 
         private Items() {}
     }
@@ -58,6 +67,8 @@ public final class Reference {
         public static String name = "name";
         public static String program = "program";
         public static String isProgramming = "isProgramming";
+        public static String trackColour = "trackColour";
+        public static String colours = "colours";
 
         private NBT() { }
     }

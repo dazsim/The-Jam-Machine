@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "jammachine:block/controller",
+      "y": 270
+    },
+    "facing=south": {
+      "model": "jammachine:block/controller",
+      "y": 90
+    },
+    "facing=east": {
+      "model": "jammachine:block/controller"
+    },
+    "facing=west": {
+      "model": "jammachine:block/controller",
+      "y": 180
+    }
+  }
+}

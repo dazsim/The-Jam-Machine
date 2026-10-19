@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "BRB",
+    "RCR",
+    "PPP"
+  ],
+  "key": {
+    "B": "minecraft:stone_button",
+    "R": "minecraft:redstone",
+    "C": "minecraft:clock",
+    "P": "#minecraft:planks"
+  },
+  "result": {
+    "id": "jammachine:controller",
+    "count": 1
+  }
+}

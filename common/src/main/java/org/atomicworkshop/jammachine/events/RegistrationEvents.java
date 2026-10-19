@@ -6,6 +6,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -13,8 +14,10 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.level.material.PushReaction;
 import org.atomicworkshop.jammachine.Reference;
 import org.atomicworkshop.jammachine.blocks.CableBlock;
+import org.atomicworkshop.jammachine.blocks.ControllerBlock;
 import org.atomicworkshop.jammachine.blocks.SequencerBlock;
 import org.atomicworkshop.jammachine.items.ItemBraidedString;
 import org.atomicworkshop.jammachine.items.ItemCable;
@@ -23,6 +26,8 @@ import org.atomicworkshop.jammachine.items.ItemPunchCardWritten;
 import org.atomicworkshop.jammachine.libraries.BlockLibrary;
 import org.atomicworkshop.jammachine.libraries.ItemLibrary;
 import org.atomicworkshop.jammachine.libraries.TileEntityTypeLibrary;
+import org.atomicworkshop.jammachine.tiles.CableTileEntity;
+import org.atomicworkshop.jammachine.tiles.ControllerTileEntity;
 import org.atomicworkshop.jammachine.tiles.SequencerTileEntity;
 
 import java.util.Set;
@@ -47,8 +52,18 @@ public class RegistrationEvents {
                 .sound(SoundType.WOOL)
                 .strength(0.2F)
                 .noOcclusion()
-                .noCollision());
+                .noCollision()
+                .pushReaction(PushReaction.DESTROY));
         registry.accept(Reference.Blocks.CABLE, BlockLibrary.cable);
+
+        BlockLibrary.controller = new ControllerBlock(BlockBehaviour.Properties.of()
+                .setId(ResourceKey.create(Registries.BLOCK, Reference.Blocks.CONTROLLER))
+                .mapColor(MapColor.WOOD)
+                .sound(SoundType.WOOD)
+                .strength(2.0F)
+                .noOcclusion()
+                .isRedstoneConductor((state, level, pos) -> false));
+        registry.accept(Reference.Blocks.CONTROLLER, BlockLibrary.controller);
     }
 
     private static Item.Properties properties(Identifier id) {
@@ -64,13 +79,24 @@ public class RegistrationEvents {
         registry.accept(Reference.Items.PUNCH_CARD_WRITTEN, ItemLibrary.punchCardWritten);
         ItemLibrary.braidedString = new ItemBraidedString(properties(Reference.Items.BRAIDED_STRING));
         registry.accept(Reference.Items.BRAIDED_STRING, ItemLibrary.braidedString);
-        ItemLibrary.cable = new ItemCable(properties(Reference.Items.CABLE));
+        ItemLibrary.cable = new ItemCable(properties(Reference.Items.CABLE), CableTileEntity.PLAIN);
         registry.accept(Reference.Items.CABLE, ItemLibrary.cable);
+        for (final DyeColor colour : DyeColor.values()) {
+            final Identifier id = Reference.Items.dyedCable(colour);
+            ItemLibrary.dyedCables[colour.getId()] = new ItemCable(properties(id), colour.getId());
+            registry.accept(id, ItemLibrary.dyedCables[colour.getId()]);
+        }
+        ItemLibrary.controller = new BlockItem(BlockLibrary.controller, properties(Reference.Blocks.CONTROLLER).useBlockDescriptionPrefix());
+        registry.accept(Reference.Blocks.CONTROLLER, ItemLibrary.controller);
     }
 
     public static void onRegisterTileEntityTypes(BiConsumer<Identifier, BlockEntityType<?>> registry) {
         TileEntityTypeLibrary.sequencer_tile = new BlockEntityType<>(SequencerTileEntity::new, Set.of(BlockLibrary.sequencer));
         registry.accept(Reference.TileEntities.SEQUENCER, TileEntityTypeLibrary.sequencer_tile);
+        TileEntityTypeLibrary.cable_tile = new BlockEntityType<>(CableTileEntity::new, Set.of(BlockLibrary.cable));
+        registry.accept(Reference.TileEntities.CABLE, TileEntityTypeLibrary.cable_tile);
+        TileEntityTypeLibrary.controller_tile = new BlockEntityType<>(ControllerTileEntity::new, Set.of(BlockLibrary.controller));
+        registry.accept(Reference.TileEntities.CONTROLLER, TileEntityTypeLibrary.controller_tile);
     }
 
     public static void onRegisterCreativeTabs(BiConsumer<Identifier, CreativeModeTab> registry) {
@@ -79,9 +105,13 @@ public class RegistrationEvents {
                 .icon(() -> new ItemStack(ItemLibrary.sequencer))
                 .displayItems((parameters, output) -> {
                     output.accept(ItemLibrary.sequencer);
+                    output.accept(ItemLibrary.controller);
                     output.accept(ItemLibrary.punchCardBlank);
                     output.accept(ItemLibrary.braidedString);
                     output.accept(ItemLibrary.cable);
+                    for (final ItemCable dyed : ItemLibrary.dyedCables) {
+                        output.accept(dyed);
+                    }
                 })
                 .build();
         registry.accept(Reference.resource("jammachine"), itemGroup);

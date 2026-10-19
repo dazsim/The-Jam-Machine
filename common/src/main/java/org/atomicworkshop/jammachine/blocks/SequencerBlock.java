@@ -98,12 +98,13 @@ public class SequencerBlock extends BaseEntityBlock {
     @Override
     protected void neighborChanged(BlockState blockState, Level worldIn, BlockPos pos, Block blockIn, @Nullable Orientation orientation, boolean movedByPiston) {
         if (worldIn.isClientSide()) return;
-        boolean isPowered = worldIn.hasNeighborSignal(pos);
-        for (final Direction value : Direction.values())
-        {
-            if (isPowered) break;
-            isPowered = worldIn.hasNeighborSignal(pos.relative(value));
-        }
+        final boolean isPowered = CableBlock.withoutPulses(() -> {
+            if (worldIn.hasNeighborSignal(pos)) return true;
+            for (final Direction value : Direction.values()) {
+                if (worldIn.hasNeighborSignal(pos.relative(value))) return true;
+            }
+            return false;
+        });
 
         final SequencerTileEntity tileEntity = getTileEntity(worldIn, pos);
         if (tileEntity == null) return;
@@ -140,7 +141,7 @@ public class SequencerBlock extends BaseEntityBlock {
 
         if (ClientConfig.USE_GUI) {
             if (!worldIn.isClientSide()) {
-                JamMachineMod.PLATFORM.openSequencer((ServerPlayer) playerIn, teSequencer);
+                JamMachineMod.PLATFORM.openMenu((ServerPlayer) playerIn, teSequencer, pos);
             }
         } else {
             final Vec3 hitVec = CollisionMaths.calculateSlopeHit(pos, state.getValue(BlockStateProperties.HORIZONTAL_FACING), playerIn);

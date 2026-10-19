@@ -25,6 +25,7 @@ public class SequencerSet implements Iterable<Sequencer>
 
     public void updateBpm()
     {
+        beatsPerMinute = 0;
         for (final Sequencer sequencer : sequencers) {
             //FIXME: (Steven) solve this properly using a controller block
             if (sequencer.getBeatsPerMinute() > 0) {

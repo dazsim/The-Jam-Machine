@@ -12,4 +12,6 @@ public class ItemLibrary {
     public static ItemPunchCardWritten punchCardWritten;
     public static ItemBraidedString braidedString;
     public static ItemCable cable;
+    public static ItemCable[] dyedCables = new ItemCable[16];
+    public static Item controller;
 }

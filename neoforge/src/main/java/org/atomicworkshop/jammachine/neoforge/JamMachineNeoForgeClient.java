@@ -10,17 +10,25 @@ import net.neoforged.neoforge.client.event.RenderFrameEvent;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.common.NeoForge;
 import org.atomicworkshop.jammachine.Reference;
+import org.atomicworkshop.jammachine.gui.ControllerScreen;
 import org.atomicworkshop.jammachine.gui.SequencerScreen;
 import org.atomicworkshop.jammachine.libraries.ContainerTypeLibrary;
 import org.atomicworkshop.jammachine.libraries.TileEntityTypeLibrary;
 import org.atomicworkshop.jammachine.sequencing.MusicPlayer;
+import org.atomicworkshop.jammachine.ter.CableRenderer;
 import org.atomicworkshop.jammachine.ter.SequencerTER;
 
 @Mod(value = Reference.MOD_ID, dist = Dist.CLIENT)
 public class JamMachineNeoForgeClient {
     public JamMachineNeoForgeClient(IEventBus modBus) {
-        modBus.addListener((RegisterMenuScreensEvent e) -> e.register(ContainerTypeLibrary.sequencer_container, SequencerScreen::new));
-        modBus.addListener((EntityRenderersEvent.RegisterRenderers e) -> e.registerBlockEntityRenderer(TileEntityTypeLibrary.sequencer_tile, SequencerTER::new));
+        modBus.addListener((RegisterMenuScreensEvent e) -> {
+            e.register(ContainerTypeLibrary.sequencer_container, SequencerScreen::new);
+            e.register(ContainerTypeLibrary.controller_container, ControllerScreen::new);
+        });
+        modBus.addListener((EntityRenderersEvent.RegisterRenderers e) -> {
+            e.registerBlockEntityRenderer(TileEntityTypeLibrary.sequencer_tile, SequencerTER::new);
+            e.registerBlockEntityRenderer(TileEntityTypeLibrary.cable_tile, CableRenderer::new);
+        });
         NeoForge.EVENT_BUS.addListener((RenderFrameEvent.Pre e) -> MusicPlayer.onClientTick());
     }
 

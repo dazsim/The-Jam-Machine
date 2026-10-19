@@ -2,7 +2,8 @@ package org.atomicworkshop.jammachine;
 
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
-import org.atomicworkshop.jammachine.tiles.SequencerTileEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.MenuProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,7 +15,7 @@ public class JamMachineMod
 
     // the bits that differ between NeoForge and Fabric
     public interface Platform {
-        void openSequencer(ServerPlayer player, SequencerTileEntity tileEntity);
+        void openMenu(ServerPlayer player, MenuProvider provider, BlockPos pos);
 
         void sendToServer(CustomPacketPayload payload);
     }

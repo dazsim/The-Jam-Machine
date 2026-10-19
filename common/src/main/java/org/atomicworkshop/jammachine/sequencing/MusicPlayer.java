@@ -30,12 +30,15 @@ public final class MusicPlayer
         synchronized(sequenceLock) {
             for (final PlayingSequence playingSequence : playingSequences)
             {
-                if (playingSequence.getSequencerSet().getId().equals(sequencerSet.getId())) return;
+                if (playingSequence.getSequencerSet().getId().equals(sequencerSet.getId())) {
+                    playingSequence.join(sequencerSet);
+                    return;
+                }
             }
 
             final PlayingSequence e = new PlayingSequence(sequencerSet);
 
-            e.setNextIntervalMillis(currentTimeMillis + (250 / (e.getBeatsPerMinute() / 60)));
+            e.setNextIntervalMillis(currentTimeMillis + millisPerInterval(e.getBeatsPerMinute()));
 
             for (final Sequencer sequencer : sequencerSet)
             {
@@ -43,6 +46,34 @@ public final class MusicPlayer
             }
 
             playingSequences.add(e);
+        }
+    }
+
+    //four intervals to a beat
+    private static long millisPerInterval(long beatsPerMinute)
+    {
+        return 15000 / Math.max(1, beatsPerMinute);
+    }
+
+    public static void stopPlaying(Sequencer sequencer, UUID sequencerSetId) {
+        if (sequencerSetId == null) return;
+        synchronized (sequenceLock) {
+            for (final PlayingSequence playingSequence : playingSequences) {
+                if (playingSequence.getSequencerSet().getId().equals(sequencerSetId)) {
+                    playingSequence.getSequencerSet().removingSequencer(sequencer);
+                }
+            }
+            playingSequences.removeIf(playingSequence -> !playingSequence.getSequencerSet().iterator().hasNext());
+        }
+    }
+
+    public static void refreshBpm(UUID sequencerSetId) {
+        synchronized (sequenceLock) {
+            for (final PlayingSequence playingSequence : playingSequences) {
+                if (playingSequence.getSequencerSet().getId().equals(sequencerSetId)) {
+                    playingSequence.getSequencerSet().updateBpm();
+                }
+            }
         }
     }
 
@@ -94,7 +125,7 @@ public final class MusicPlayer
                 }
                 final long nextIntervalMillis = playingSequence.getNextIntervalMillis();
                 if (currentTimeMillis >= nextIntervalMillis) {
-                    final long millisToNextInterval = 250 / (playingSequence.getBeatsPerMinute() / 60);
+                    final long millisToNextInterval = millisPerInterval(playingSequence.getBeatsPerMinute());
                     playingSequence.setNextIntervalMillis(currentTimeMillis + millisToNextInterval);
                     playingSequence.playNextInterval();
                 }
@@ -104,8 +135,7 @@ public final class MusicPlayer
 
     public static void playNote(Sequencer sequencer, AdjacentNoteBlock noteBlock, Byte pitchToPlay)
     {
-        final BlockPos sequencerBlockPos = sequencer.getBlockPos();
-        final BlockPos pos = sequencerBlockPos.relative(noteBlock.getDirection());
+        final BlockPos pos = noteBlock.getPos(sequencer.getBlockPos());
 
         final Level world = sequencer.getWorld();
         final NoteBlockInstrument instrument = noteBlock.getInstrument();

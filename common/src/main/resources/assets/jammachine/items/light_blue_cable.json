@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "jammachine:item/cable_dyed",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": -12930086
+      }
+    ]
+  }
+}
